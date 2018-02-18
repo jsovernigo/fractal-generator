@@ -14,8 +14,11 @@
 #define SIDE 1.3
 #define M 700
 #define NUM 255
-
 #define MAX 1000
+
+int intensity;
+
+#define MUTATE(x) pow(x, intensity)
 
 #define SET_PIXEL(ptr, colour) ptr[0] = colour.r; ptr[1] = colour.g; ptr[2] = colour.b; ptr[3] = colour.a;
 
@@ -52,22 +55,41 @@ struct colour random_colour(int opacity)
 	return new_colour;
 }
 
-struct colour fade(struct colour from, struct colour to, int percentage)
+struct colour fade(struct colour from, struct colour to, double percentage)
 {
 	struct colour n;
-
-
-	/* TODO scaling?
-	percentage ;
-	if (percentage > 100)
-	{
-		percentage = 100.00;
-	}
-	*/
 
 	n.r = (int)( (double)from.r + (double) (to.r - from.r) * ((double)percentage));
 	n.g = (int)( (double)from.g + (double) (to.g - from.g) * ((double)percentage));
 	n.b = (int)( (double)from.b + (double) (to.b - from.b) * ((double)percentage));
+
+	if (n.r > 255)
+	{
+		n.r = 255;
+	}
+	else if (n.r < 0)
+	{
+		n.r = 0;
+	}
+
+	if (n.g > 255)
+	{
+		n.g = 255;
+	}
+	else if (n.g < 0)
+	{
+		n.g = 0;
+	}
+
+	if (n.b > 255)
+	{
+		n.b = 255;
+	}
+	else if (n.b < 0)
+	{
+		n.b = 0;
+	}
+
 	n.a = 255;
 
 	return n;
@@ -211,43 +233,6 @@ int write_png_file(char* fname, int width, int height, size_t bytes_per_row, png
 	return 0;
 }
 
-void process_file(png_bytep* row_pointers, int width, int height)
-{
-	int i;
-	int j;
-
-	/* Expand any grayscale, RGB, or palette images to RGBA */
-	png_set_expand(png_ptr);
-
-	/* Reduce any 16-bits-per-sample images to 8-bits-per-sample */
-	png_set_strip_16(png_ptr);
-
-	for (i = 0; i < height; i++) 
-	{
-		png_byte* row = row_pointers[i];
-
-		for (j = 0; j < width; j++) 
-		{
-			png_byte* ptr;
-			ptr = &(row[j*4]);
-
-			if (j % 4 == 0 || i % 4 == 0)
-			{
-				/*ptr[2] = 0xFF;*/
-				struct colour c;
-
-				c = random_colour(255);
-
-				SET_PIXEL(ptr, c);
-			}
-
-			printf("Pixel at position [%4d - %4d] has RGBA values: %3d - %3d - %3d - %3d\n", j, i, ptr[0], ptr[1], ptr[2], ptr[3]);
-		}
-	}
-
-	return;
-}
-
 void write_mandelbrot(png_bytep* row_pointers, int width, int height, int r, int g, int b)
 {
 	int i;
@@ -299,14 +284,10 @@ void write_mandelbrot(png_bytep* row_pointers, int width, int height, int r, int
 				to = make_colour(0,0,0,255);
 				from = make_colour(r, g, b, 255);
 
-				percent = ((double)iteration / (double)MAX) * 100.00;
+				percent = (((double) MAX - (double) iteration )/ (double)MAX);
 
-				faded = fade(from, to, (int) (log(percent + 1) * 50));
+				faded = fade(from, to, MUTATE(percent));
 
-				if (EQ(faded, from))
-				{
-					faded = to;
-				}
 				SET_PIXEL(ptr, faded);
 			}
 			else
@@ -371,13 +352,10 @@ void write_julia(png_bytep* row_pointers, int width, int height, double c_re, do
 				to = make_colour(0,0,0,255);
 				from = make_colour(r, g, b, 255);
 
-				percent = ((double)iteration / (double)MAX) * 100.00;
+				percent = (((double) MAX - (double) iteration )/ (double)MAX);
 
-				faded = fade(from, to, (int) (log(percent + 1) * 50));
-				if (EQ(faded, from))
-				{
-					faded = to;
-				}
+				faded = fade(from, to, MUTATE(percent));
+				
 				SET_PIXEL(ptr, faded);
 			}
 			else
@@ -435,6 +413,11 @@ char* parse_args(int argc, char** argv, int* r, int* g, int* b, int* julia, doub
 		else if (strcmp(argv[i], "-f") == 0)
 		{
 			fname = argv[i + 1];
+			i++;
+		}
+		else if (strcmp(argv[i], "-intensity") == 0)
+		{
+			intensity = atoi(argv[i + 1]);
 			i++;
 		}
 		i++;
