@@ -434,7 +434,8 @@ char* parse_args(int argc, char** argv, int* r, int* g, int* b, int* julia, doub
 		}
 		else if (strcmp(argv[i], "-f") == 0)
 		{
-			fname = argv[i];
+			fname = argv[i + 1];
+			i++;
 		}
 		i++;
 	}
@@ -484,7 +485,7 @@ int main(int argc, char** argv)
 	}
 	else
 	{
-		write_julia(row_pointers, width, height, -c_re, c_im, r, g, b);
+		write_julia(row_pointers, width, height, c_re, c_im, r, g, b);
 	}
 
 	write_png_file(fname, width, height, bytes_per_row, row_pointers);
