@@ -16,7 +16,7 @@
 #define NUM 255
 #define MAX 1000
 
-int intensity;
+int intensity = 10;
 
 #define MUTATE(x) pow(x, intensity)
 

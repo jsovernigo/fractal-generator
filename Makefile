@@ -5,4 +5,7 @@ LIBS =-lpng -lm
 all: build
 
 build:
-	$(CC) $(CFLAGS) -o pngwriter mywriter.c $(LIBS)
+	$(CC) $(CFLAGS) -o fractalwriter fractals.c $(LIBS)
+
+clean:
+	rm fractalwriter
