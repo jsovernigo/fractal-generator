@@ -13,18 +13,9 @@
 Included in the folder should be the following files:
 	- fractals.c
 	- Makefile
-	- pngwriter
 	- README.txt
-	- saved_images
-	- temp1920x1080.png
-	- temp2436x1125.png
-	- temp3840x1440.png
-	- temp3840x2160.png
 
-The included png files are common high-res templates that you can use to create
-your own fractals.  Note that the program needs a pre-existing png file to use
-as a template to write to, and it will not produce stand-alone files... I am
-working on that one.
+The program will output the file to the file name provided, using the -o flag.
 
 ***********
  Compiling
@@ -46,9 +37,12 @@ FLAGS:
 	-r [0..255]			This flag specifies the red component.  Default 255.
 	-g [0..255]			This flag specifies the green component.  Default 255.
 	-b [0..255]			This flag specifies the blue component.  Default 255.
-	-intensity [10..inf)Specifies the colour intensity.  Default 10.
-	-julia				Specifies a Julia fractal output.  Without, it produces
+	-w [0..inf)			This flag specifies the width of the image.
+	-h [0..inf)			This flag specifies the height of the image.
+	-o <filename>		Mandatory flag, required to output the fractal to a file.
+	--intensity [10..inf)Specifies the colour intensity.  Default 10.
+	--julia				Specifies a Julia fractal output.  Without, it produces
 						a Mandelbrot Set.
-	-real [-2..2]		Specify the real component of the fractal (julia only)
-	-imaginary [-2..2]	Specify the imaginary component (julia only)
+	--real [-2..2]		Specify the real component of the fractal (julia only)
+	--imaginary [-2..2]	Specify the imaginary component (julia only)
 

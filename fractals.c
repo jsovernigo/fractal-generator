@@ -142,6 +142,15 @@ double write_progress(int max, int done)
 }
 
 
+/**
+ *	get_rowpointers
+ *	mallocs and returns a set of row pointers, based on the width and height passed in.
+ *	IN:			width		int - the integer width of the image that you want to construct.
+ *				height		int - the height of the image, in integer form.
+ *	OUT:		an allocated array of byte pointers that you can write to.
+ *	POST:		malloc'd memory returned.
+ *	ERROR:		width/height negative.
+ */
 png_bytep* get_rowpointers(int width, int height)
 {
 	int i;
@@ -163,98 +172,20 @@ png_bytep* get_rowpointers(int width, int height)
 
 
 /**
+ *	write_png_file
+ *	writes the png information in row_pointers to the defined file.
+ *	IN:		fname			char* - the file output name.
+ *			width			int - the width of the image
+ *			height			int - the height of the image.
  *
  */
-png_bytep* read_png_file(char* fname, int* width, int* height, size_t* bytes_per_row)
-{
-	int i;
-	FILE* fp;
-	png_bytep* row_pointers;
-	png_structp png_ptr;
-	png_infop info_ptr;
-	unsigned char header[8];
-
-	fp = fopen(fname, "rb");
-	if (!fp)
-	{
-		return NULL;
-	}
-
-	fread(header, 1, 8, fp);
-	if (png_sig_cmp(header, 0, 8))
-	{
-		return NULL;
-	}
-
-	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	if (!png_ptr)
-	{
-		return NULL;
-	}
-
-	info_ptr = png_create_info_struct(png_ptr);
-	if (!info_ptr)
-	{
-		return NULL;
-	}
-
-	if (setjmp(png_jmpbuf(png_ptr)))
-	{
-		return NULL;
-	}
-
-	png_init_io(png_ptr, fp);
-	png_set_sig_bytes(png_ptr, 8);
-
-	png_read_info(png_ptr, info_ptr);
-
-	*width = png_get_image_width(png_ptr, info_ptr);
-	*height = png_get_image_height(png_ptr, info_ptr);
-
-	color_type = png_get_color_type(png_ptr, info_ptr);
-	bit_depth = png_get_bit_depth(png_ptr, info_ptr);
-
-	number_of_passes = png_set_interlace_handling(png_ptr);
-	png_read_update_info(png_ptr, info_ptr);
-
-	if (setjmp(png_jmpbuf(png_ptr)))
-	{
-		return NULL;
-	}
-
-	row_pointers = malloc(sizeof(png_bytep) * *height);
-
-	if (bit_depth == 16)
-	{
-		*bytes_per_row = 8;
-		puts("8\n");
-	}
-	else
-	{
-		puts("4\n");
-		*bytes_per_row = 4;
-	}
-
-	for (i = 0; i < *height; i++)
-	{
-		row_pointers[i] = malloc(*bytes_per_row * *width);
-	}
-
-	png_read_image(png_ptr, row_pointers);
-
-	fclose(fp);
-
-	return row_pointers;
-}
-
-
-int write_png_file(char* fname, int width, int height, size_t bytes_per_row, png_bytep* row_pointers)
+int write_png_file(char* fname, int width, int height, png_bytep* row_pointers)
 {
 	FILE* fp;
 	png_structp png_ptr;
 	png_infop info_ptr;
 
-	fp = fopen(fname, "wb");
+	fp = fopen(fname, "wb+");
 
 	if (!fp)
 	{
@@ -302,7 +233,7 @@ int write_png_file(char* fname, int width, int height, size_t bytes_per_row, png
 	return 0;
 }
 
-void write_mandelbrot(png_bytep* row_pointers, int width, int height, uint8_t r, uint8_t g, uint8_t b)
+void construct_mandelbrot(png_bytep* row_pointers, int width, int height, uint8_t r, uint8_t g, uint8_t b)
 {
 	int i;
 	int j;
@@ -373,7 +304,7 @@ void write_mandelbrot(png_bytep* row_pointers, int width, int height, uint8_t r,
 	return;
 }
 
-void write_julia(png_bytep* row_pointers, int width, int height, double c_re, double c_im, uint8_t r, uint8_t g, uint8_t b)
+void construct_julia(png_bytep* row_pointers, int width, int height, double c_re, double c_im, uint8_t r, uint8_t g, uint8_t b)
 {
 	int i;
 
@@ -444,7 +375,7 @@ void write_julia(png_bytep* row_pointers, int width, int height, double c_re, do
 }
 
 
-char* parse_args(int argc, char** argv, uint8_t* r, uint8_t* g, uint8_t* b, int* julia, double* c_re, double* c_im)
+char* parse_args(int argc, char** argv, int* width, int* height, uint8_t* r, uint8_t* g, uint8_t* b, int* julia, double* c_re, double* c_im)
 {
 	int i;
 	char* fname;
@@ -468,30 +399,41 @@ char* parse_args(int argc, char** argv, uint8_t* r, uint8_t* g, uint8_t* b, int*
 			*b = atoi(argv[i + 1]);
 			i++;
 		}
-		else if (strcmp(argv[i], "-julia") == 0)
+		else if (strcmp(argv[i], "--julia") == 0)
 		{
 			*julia = 1;
 		}
-		else if (strcmp(argv[i], "-real") == 0)
+		else if (strcmp(argv[i], "--real") == 0)
 		{
 			*c_re =  atof(argv[i + 1]);
 			i++;
 		}
-		else if (strcmp(argv[i], "-imaginary") == 0)
+		else if (strcmp(argv[i], "--imaginary") == 0)
 		{
 			*c_im =  atof(argv[i + 1]);
 			i++;
 		}
-		else if (strcmp(argv[i], "-f") == 0)
+		else if (strcmp(argv[i], "-o") == 0)
 		{
 			fname = argv[i + 1];
 			i++;
 		}
-		else if (strcmp(argv[i], "-intensity") == 0)
+		else if (strcmp(argv[i], "--intensity") == 0)
 		{
 			intensity = atoi(argv[i + 1]);
 			i++;
 		}
+		else if (strcmp(argv[i], "-w") == 0)
+		{
+			*width = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (strcmp(argv[i], "-h") == 0)
+		{
+			*height = atoi(argv[i + 1]);
+			i++;
+		}
+
 		i++;
 	}
 
@@ -510,8 +452,8 @@ int main(int argc, char** argv)
 	int julia;
 	double c_re; 
 	double c_im;
-	size_t bytes_per_row;
 	char* fname;
+	png_bytep* row_pointers;
 
 	r = 255;
 	g = 255;
@@ -520,31 +462,28 @@ int main(int argc, char** argv)
 	julia = 0;
 	c_re = -0.79;
 	c_im = 0.15;
+	width = 1920;
+	height = 1080;
 
-	png_bytep* row_pointers;
-
-	srand(time(0));
-
-	fname = parse_args(argc, argv, &r, &g, &b, &julia, &c_re, &c_im);
+	fname = parse_args(argc, argv, &width, &height, &r, &g, &b, &julia, &c_re, &c_im);
 	if (fname == NULL)
 	{
-		puts("Minimum specification is `-file <file path>`.");
+		puts("Minimum specification is `-o <file path>`.");
 		exit(1);
 	}
 
-	//row_pointers = read_png_file(fname, &width, &height, &bytes_per_row);
-	row_pointers = get_rowpointers(1920, 1080);
+	row_pointers = get_rowpointers(width, height);
 
 	if (!julia)
 	{
-		write_mandelbrot(row_pointers, width, height, r, g, b);
+		construct_mandelbrot(row_pointers, width, height, r, g, b);
 	}
 	else
 	{
-		write_julia(row_pointers, width, height, c_re, c_im, r, g, b);
+		construct_julia(row_pointers, width, height, c_re, c_im, r, g, b);
 	}
 
-	write_png_file(fname, width, height, bytes_per_row, row_pointers);
+	write_png_file(fname, width, height, row_pointers);
 
 	for (i = 0; i < height; i++)
 	{
