@@ -1,3 +1,8 @@
+/**
+ *	Giuliano Sovernigo
+ *
+ *	This is the primary file in the fractal writer program.
+ */
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -5,23 +10,33 @@
 #include <stdarg.h>
 #include <stdint.h>
 
+// library specific includes.
 #include <png.h>
 #include <math.h>
 
-
-#define RADIUS 10
-#define C_X 0.912365
-#define C_Y 0.194280
-#define SIDE 1.3
-#define M 700
-#define NUM 255
+// This is the *precision* of the fractal... decrease to speed up, but decrease your intensity!
 #define MAX 1000
 
+png_byte color_type;
+png_byte bit_depth;
+int number_of_passes;
 int intensity = 10;
 
+/**
+ *	this function produces colour->black scaling adjustments.  It is hard to describe, 
+ *	but essentially:
+ *	as a number increases from 0->100, it loses very little colour, until it reaches
+ *	a critical point determined by the intensity, which represents the power of the
+ *	polynomial expression.  This produces a slow fade from white, then a rapid drop off to black.
+ */
 #define MUTATE(x) pow(x, intensity)
 
+/**
+ * This could be a function, but it really does not deserve a whole stack frame.
+ * it sets a pixel pointer, ptr, to a specific colour, denoted by the colour struct.
+ */
 #define SET_PIXEL(ptr, colour) ptr[0] = colour.r; ptr[1] = colour.g; ptr[2] = colour.b; ptr[3] = colour.a;
+
 
 struct colour
 {
@@ -32,6 +47,17 @@ struct colour
 };
 
 
+/**
+ *	make_colour
+ *	produces a colour struct, given r, g, b, a, values.
+ *	IN:			r		uint8_t - the red component.
+ *				g		uint8_t - the green component.
+ *				b		uint8_t - the blue component.
+ *				a		uint8_t - the alpha contenet.
+ *	OUT:		a new colour struct, built by the function.
+ *	POST:		colour returned.
+ *	ERROR:		be wary of uint8_t overflow!!
+ */
 struct colour make_colour(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	struct colour new_colour;
@@ -43,17 +69,17 @@ struct colour make_colour(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 	return new_colour;
 }
 
-struct colour random_colour(uint8_t opacity)
-{
-	struct colour new_colour;
-	new_colour.r = rand() * 255;
-	new_colour.g = rand() * 255;
-	new_colour.b = rand() * 255;
-	new_colour.a = opacity;
 
-	return new_colour;
-}
-
+/**
+ *	fade
+ *	calculates a percentage fade for two colours.
+ *	IN:			from		struct colour - the starting colour.
+ *				to			struct colour - the ending colour
+ *				percentage	double - the percentage fade from from to to.
+ *	OUT:		a new colour that represents the faded colour between from and to.
+ *	POST:		colour returned.
+ *	ERROR:		none.
+ */
 struct colour fade(struct colour from, struct colour to, double percentage)
 {
 	struct colour n;
@@ -62,6 +88,7 @@ struct colour fade(struct colour from, struct colour to, double percentage)
 	n.g = (uint8_t)( (double)from.g + (double) (to.g - from.g) * ((double)percentage));
 	n.b = (uint8_t)( (double)from.b + (double) (to.b - from.b) * ((double)percentage));
 
+	// capping statements for red, green, and blue
 	if (n.r > 255)
 	{
 		n.r = 255;
@@ -94,13 +121,17 @@ struct colour fade(struct colour from, struct colour to, double percentage)
 	return n;
 }
 
-png_byte color_type;
-png_byte bit_depth;
 
-png_structp png_ptr;
-png_infop info_ptr;
-int number_of_passes;
-
+/**
+ *	write_progress
+ *	writes the progress of the iterations to the screen.
+ *	TODO this is a target for an upgrade to an in-place bar later.
+ *	IN:			max			int - the "one hundred"
+ *				done		done - the current amount of max done.
+ *	OUT:		the double percentage of progress.
+ *	POST:		percentage and newline written to the screen.
+ *	ERROR:		done > max.
+ */
 double write_progress(int max, int done)
 {
 	double percent;
@@ -110,11 +141,37 @@ double write_progress(int max, int done)
 	return percent;
 }
 
+
+png_bytep* get_rowpointers(int width, int height)
+{
+	int i;
+	png_bytep* row_pointers;
+
+	row_pointers = malloc(sizeof(png_bytep) * height);
+	if (row_pointers == NULL)
+	{
+		return NULL;
+	}
+
+	for (i = 0; i < height; i++)
+	{
+		row_pointers[i] = malloc(0x04 * width);
+	}
+
+	return row_pointers;
+}
+
+
+/**
+ *
+ */
 png_bytep* read_png_file(char* fname, int* width, int* height, size_t* bytes_per_row)
 {
 	int i;
 	FILE* fp;
 	png_bytep* row_pointers;
+	png_structp png_ptr;
+	png_infop info_ptr;
 	unsigned char header[8];
 
 	fp = fopen(fname, "rb");
@@ -170,9 +227,11 @@ png_bytep* read_png_file(char* fname, int* width, int* height, size_t* bytes_per
 	if (bit_depth == 16)
 	{
 		*bytes_per_row = 8;
+		puts("8\n");
 	}
 	else
 	{
+		puts("4\n");
 		*bytes_per_row = 4;
 	}
 
@@ -192,6 +251,8 @@ png_bytep* read_png_file(char* fname, int* width, int* height, size_t* bytes_per
 int write_png_file(char* fname, int width, int height, size_t bytes_per_row, png_bytep* row_pointers)
 {
 	FILE* fp;
+	png_structp png_ptr;
+	png_infop info_ptr;
 
 	fp = fopen(fname, "wb");
 
@@ -365,7 +426,7 @@ void write_julia(png_bytep* row_pointers, int width, int height, double c_re, do
 				percent = (((double) MAX - (double) iteration )/ (double)MAX);
 
 				faded = fade(from, to, MUTATE(percent));
-				
+
 				SET_PIXEL(ptr, faded);
 			}
 			else
@@ -413,12 +474,12 @@ char* parse_args(int argc, char** argv, uint8_t* r, uint8_t* g, uint8_t* b, int*
 		}
 		else if (strcmp(argv[i], "-real") == 0)
 		{
-			*c_re = atof(argv[i + 1]);
+			*c_re =  atof(argv[i + 1]);
 			i++;
 		}
 		else if (strcmp(argv[i], "-imaginary") == 0)
 		{
-			*c_im = atof(argv[i + 1]);
+			*c_im =  atof(argv[i + 1]);
 			i++;
 		}
 		else if (strcmp(argv[i], "-f") == 0)
@@ -471,7 +532,8 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
-	row_pointers = read_png_file(fname, &width, &height, &bytes_per_row);
+	//row_pointers = read_png_file(fname, &width, &height, &bytes_per_row);
+	row_pointers = get_rowpointers(1920, 1080);
 
 	if (!julia)
 	{
