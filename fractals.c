@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdint.h>
 
 #include <png.h>
 #include <math.h>
@@ -22,18 +23,16 @@ int intensity = 10;
 
 #define SET_PIXEL(ptr, colour) ptr[0] = colour.r; ptr[1] = colour.g; ptr[2] = colour.b; ptr[3] = colour.a;
 
-#define EQ(c1, c2) (c1.r == c2.r && c1.g == c2.g && c1.b == c2.b && c1.a == c2.a)
-
 struct colour
 {
-	int r;
-	int g;
-	int b;
-	int a;
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
+	uint8_t a;
 };
 
 
-struct colour make_colour(int r, int g, int b, int a)
+struct colour make_colour(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	struct colour new_colour;
 	new_colour.r = r;
@@ -44,7 +43,7 @@ struct colour make_colour(int r, int g, int b, int a)
 	return new_colour;
 }
 
-struct colour random_colour(int opacity)
+struct colour random_colour(uint8_t opacity)
 {
 	struct colour new_colour;
 	new_colour.r = rand() * 255;
@@ -59,9 +58,9 @@ struct colour fade(struct colour from, struct colour to, double percentage)
 {
 	struct colour n;
 
-	n.r = (int)( (double)from.r + (double) (to.r - from.r) * ((double)percentage));
-	n.g = (int)( (double)from.g + (double) (to.g - from.g) * ((double)percentage));
-	n.b = (int)( (double)from.b + (double) (to.b - from.b) * ((double)percentage));
+	n.r = (uint8_t)( (double)from.r + (double) (to.r - from.r) * ((double)percentage));
+	n.g = (uint8_t)( (double)from.g + (double) (to.g - from.g) * ((double)percentage));
+	n.b = (uint8_t)( (double)from.b + (double) (to.b - from.b) * ((double)percentage));
 
 	if (n.r > 255)
 	{
@@ -101,6 +100,15 @@ png_byte bit_depth;
 png_structp png_ptr;
 png_infop info_ptr;
 int number_of_passes;
+
+double write_progress(int max, int done)
+{
+	double percent;
+
+	percent = ((double) done) / ((double) max);
+	printf("[%3.2lf%%]\n", percent * 100.00);
+	return percent;
+}
 
 png_bytep* read_png_file(char* fname, int* width, int* height, size_t* bytes_per_row)
 {
@@ -233,7 +241,7 @@ int write_png_file(char* fname, int width, int height, size_t bytes_per_row, png
 	return 0;
 }
 
-void write_mandelbrot(png_bytep* row_pointers, int width, int height, int r, int g, int b)
+void write_mandelbrot(png_bytep* row_pointers, int width, int height, uint8_t r, uint8_t g, uint8_t b)
 {
 	int i;
 	int j;
@@ -297,12 +305,14 @@ void write_mandelbrot(png_bytep* row_pointers, int width, int height, int r, int
 				SET_PIXEL(ptr, c);
 			}
 		}
+
+		write_progress(height, i);
 	}
 
 	return;
 }
 
-void write_julia(png_bytep* row_pointers, int width, int height, double c_re, double c_im, int r, int g, int b)
+void write_julia(png_bytep* row_pointers, int width, int height, double c_re, double c_im, uint8_t r, uint8_t g, uint8_t b)
 {
 	int i;
 
@@ -364,15 +374,16 @@ void write_julia(png_bytep* row_pointers, int width, int height, double c_re, do
 				c = make_colour(0, 0, 0, 255);
 				SET_PIXEL(ptr, c);
 			}
-
 		}
+
+		write_progress(height, i);
 	}
 
 	return;
 }
 
 
-char* parse_args(int argc, char** argv, int* r, int* g, int* b, int* julia, double* c_re, double* c_im)
+char* parse_args(int argc, char** argv, uint8_t* r, uint8_t* g, uint8_t* b, int* julia, double* c_re, double* c_im)
 {
 	int i;
 	char* fname;
@@ -432,9 +443,9 @@ int main(int argc, char** argv)
 	int i;
 	int width;
 	int height;
-	int r;
-	int g;
-	int b;
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
 	int julia;
 	double c_re; 
 	double c_im;
