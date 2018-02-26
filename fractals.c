@@ -384,54 +384,60 @@ char* parse_args(int argc, char** argv, int* width, int* height, uint8_t* r, uin
 	i = 1;
 	while (i < argc)
 	{
-		if (strcmp(argv[i], "-r") == 0)
+		// this is for all arguments that require more than one item.
+		if (i + 1 < argc)
 		{
-			*r = atoi(argv[i + 1]);
-			i++;
+			if (strcmp(argv[i], "-r") == 0)
+			{
+				*r = atoi(argv[i + 1]);
+				i++;
+			}
+			else if (strcmp(argv[i], "-g") == 0)
+			{
+				*g = atoi(argv[i + 1]);
+				i++;
+			}
+			else if (strcmp(argv[i], "-b") == 0)
+			{
+				*b = atoi(argv[i + 1]);
+				i++;
+			}
+			else if (strcmp(argv[i], "--real") == 0)
+			{
+				*c_re =  atof(argv[i + 1]);
+				i++;
+			}
+			else if (strcmp(argv[i], "--imaginary") == 0)
+			{
+				*c_im =  atof(argv[i + 1]);
+				i++;
+			}
+			else if (strcmp(argv[i], "-o") == 0)
+			{
+				fname = argv[i + 1];
+				i++;
+			}
+			else if (strcmp(argv[i], "--intensity") == 0)
+			{
+				intensity = atoi(argv[i + 1]);
+				i++;
+			}
+			else if (strcmp(argv[i], "-w") == 0)
+			{
+				*width = atoi(argv[i + 1]);
+				i++;
+			}
+			else if (strcmp(argv[i], "-h") == 0)
+			{
+				*height = atoi(argv[i + 1]);
+				i++;
+			}
+
 		}
-		else if (strcmp(argv[i], "-g") == 0)
-		{
-			*g = atoi(argv[i + 1]);
-			i++;
-		}
-		else if (strcmp(argv[i], "-b") == 0)
-		{
-			*b = atoi(argv[i + 1]);
-			i++;
-		}
-		else if (strcmp(argv[i], "--julia") == 0)
+		
+		if (strcmp(argv[i], "--julia") == 0)
 		{
 			*julia = 1;
-		}
-		else if (strcmp(argv[i], "--real") == 0)
-		{
-			*c_re =  atof(argv[i + 1]);
-			i++;
-		}
-		else if (strcmp(argv[i], "--imaginary") == 0)
-		{
-			*c_im =  atof(argv[i + 1]);
-			i++;
-		}
-		else if (strcmp(argv[i], "-o") == 0)
-		{
-			fname = argv[i + 1];
-			i++;
-		}
-		else if (strcmp(argv[i], "--intensity") == 0)
-		{
-			intensity = atoi(argv[i + 1]);
-			i++;
-		}
-		else if (strcmp(argv[i], "-w") == 0)
-		{
-			*width = atoi(argv[i + 1]);
-			i++;
-		}
-		else if (strcmp(argv[i], "-h") == 0)
-		{
-			*height = atoi(argv[i + 1]);
-			i++;
 		}
 
 		i++;
@@ -446,10 +452,11 @@ int main(int argc, char** argv)
 	int i;
 	int width;
 	int height;
+	int julia;
+	int no_file;
 	uint8_t r;
 	uint8_t g;
 	uint8_t b;
-	int julia;
 	double c_re; 
 	double c_im;
 	char* fname;
@@ -464,16 +471,21 @@ int main(int argc, char** argv)
 	c_im = 0.15;
 	width = 1920;
 	height = 1080;
+	no_file = 0;
+	fname = NULL;
 
 	fname = parse_args(argc, argv, &width, &height, &r, &g, &b, &julia, &c_re, &c_im);
 	if (fname == NULL)
 	{
-		puts("Minimum specification is `-o <file path>`.");
-		exit(1);
+		no_file = 1;
+		fname = malloc(sizeof(char) * 256);
+		memset(fname, 0, 256);
+		sprintf(fname, "(%dx%d)(%lfr%lfi).png", width, height, c_re, c_im);
 	}
 
 	row_pointers = get_rowpointers(width, height);
 
+	// construct the series, write them to the bit map.
 	if (!julia)
 	{
 		construct_mandelbrot(row_pointers, width, height, r, g, b);
@@ -484,6 +496,13 @@ int main(int argc, char** argv)
 	}
 
 	write_png_file(fname, width, height, row_pointers);
+
+
+	/* -- Free allocated memory. -- */
+	if (no_file)
+	{
+		free(fname);
+	}
 
 	for (i = 0; i < height; i++)
 	{
