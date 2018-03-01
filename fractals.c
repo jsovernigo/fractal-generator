@@ -233,6 +233,19 @@ int write_png_file(char* fname, int width, int height, png_bytep* row_pointers)
 	return 0;
 }
 
+/**
+ *	construct_mandelbrot
+ *	builds a mandelbrot set in the row pointers, colouring using the recursive depth model.
+ *	IN:		row_pointers	png_bytep* - the list of png image row pointers.
+ *			width			int - the width of the image.
+ *			height			int - the height of the image.
+ *			r				uint8_t - the red component
+ *			g				uint8_t - the green component
+ *			b				uint8_t - the blue component
+ *	OUT:	nothing returned.
+ *	POST:	a mandelbrot set has been written to the row_pointers that you provided.
+ *	ERROR:	row_pointers is null.
+ */
 void construct_mandelbrot(png_bytep* row_pointers, int width, int height, uint8_t r, uint8_t g, uint8_t b)
 {
 	int i;
@@ -304,10 +317,28 @@ void construct_mandelbrot(png_bytep* row_pointers, int width, int height, uint8_
 	return;
 }
 
+
+/**
+ *	construct_julia
+ *	builds a julia set in the row pointers provided, with the complex orbit
+ *	described by the complex number provided.
+ *	IN:		row_pointers	png_bytep* - the list of png image row pointers.
+ *			width			int - the width of the image.
+ *			height			int - the height of the image.
+ *			c_re			double - the real component of the complex orbit.
+ *			c_im			double - the imaginary component of the orbit.
+ *			r				uint8_t - the red component
+ *			g				uint8_t - the green component
+ *			b				uint8_t - the blue component
+ *	OUT:	nothing returned.
+ *	POST:	a julia set has been written to the row_pointers provided.
+ *	ERROR:	row_pointers is null.
+ */
 void construct_julia(png_bytep* row_pointers, int width, int height, double c_re, double c_im, uint8_t r, uint8_t g, uint8_t b)
 {
 	int i;
 
+	// iterate through the rows
 	for (i = 0; i < height; i++)
 	{
 		int j;
@@ -315,6 +346,7 @@ void construct_julia(png_bytep* row_pointers, int width, int height, double c_re
 		png_byte* row;
 		row = row_pointers[i];
 
+		// iterate through the columns.
 		for (j = 0; j < width; j++)
 		{
 			int iteration;
@@ -375,6 +407,23 @@ void construct_julia(png_bytep* row_pointers, int width, int height, double c_re
 }
 
 
+/**
+ *	parse_args
+ *	parses the arguments passed in with the argument vector, and sets the flags for the program accordingly.
+ *	IN:		argc		int - the agrument count
+ *			argv		char* - the argument array.
+ *			width		int* - the address of the width flag.
+ *			height		int* - the address of the height flag.
+ *			r			uint8_t* - the address of the red component flag
+ *			g			uint8_t* - the address of the green component flag
+ *			b			uint8_t* - the address of the blue component flag
+ *			julia		int* - the address of the julia flag (sets the julia set vs mandelbrot construction)
+ *			c_re		double* - the address of the real complex root.
+ *			c_im		double* - the address of the imaginary complex root.
+ *	OUT:	returns a valid file name if it was specified, or NULL if not specified.
+ *	POST:	all address flags *may* have been updated.
+ *	ERROR:	
+ */
 char* parse_args(int argc, char** argv, int* width, int* height, uint8_t* r, uint8_t* g, uint8_t* b, int* julia, double* c_re, double* c_im)
 {
 	int i;
@@ -447,6 +496,17 @@ char* parse_args(int argc, char** argv, int* width, int* height, uint8_t* r, uin
 }
 
 
+/**
+ *	main
+ *	This is the main function of the program.  It handles the ordering of events
+ *	and calls the png write procedures.
+ *	IN:		argc		int - the argument count from command line.
+ *			argv		char* - the argument array as passed in by the terminal.
+ *	OUT:	returns 0 on complete execution, positive values otherwise.
+ *	POST:	a file has been written, named by the passed in file name, or the
+ *			execution parameters as specified by the width, height, and roots.
+ *	ERROR:	many.
+ */
 int main(int argc, char** argv)
 {
 	int i;
@@ -475,12 +535,21 @@ int main(int argc, char** argv)
 	fname = NULL;
 
 	fname = parse_args(argc, argv, &width, &height, &r, &g, &b, &julia, &c_re, &c_im);
+
+	// this creates a default file name, if it does not get filled.
 	if (fname == NULL)
 	{
 		no_file = 1;
 		fname = malloc(sizeof(char) * 256);
 		memset(fname, 0, 256);
-		sprintf(fname, "(%dx%d)(%lfr%lfi).png", width, height, c_re, c_im);
+		if (julia)
+		{
+			sprintf(fname, "(%dx%d)(%lfr%lfi).png", width, height, c_re, c_im);
+		}
+		else
+		{
+			sprintf(fname, "(%dx%d)(mandelbrot).png", width, height);
+		}
 	}
 
 	row_pointers = get_rowpointers(width, height);
