@@ -39,7 +39,7 @@ FLAGS:
 	-b [0..255]			This flag specifies the blue component.  Default 255.
 	-w [0..inf)			This flag specifies the width of the image.
 	-h [0..inf)			This flag specifies the height of the image.
-	-o <filename>		Mandatory flag, required to output the fractal to a file.
+	-o <filename>		The output path to output the fractal to a file.
 	--intensity [10..inf)Specifies the colour intensity.  Default 10.
 	--julia				Specifies a Julia fractal output.  Without, it produces
 						a Mandelbrot Set.
