@@ -1,7 +1,11 @@
 *******************************************************************************
 
-	Author: 	Giuliano Sovernigo
-	Email: 		juliansovernigo@gmail.com
+	Authors: 	
+        Giuliano Sovernigo
+        Hugo Klepsch
+	Email: 		
+        juliansovernigo@gmail.com
+        hugo.klepsch@gmail.com
 
 	This program is a fractal generator!  It uses libpng to write a fractal
 	pattern to a png file.  You can specify colour, type, complex roots, and
