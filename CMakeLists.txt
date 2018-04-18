@@ -21,7 +21,9 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
 	endif()
 endif()
 
-add_executable(fractalwriter fractals.c)
-target_link_libraries(fractalwriter png m)
+add_library(fractal STATIC fractals.c)
+
+add_executable(fractalwriter main.c)
+target_link_libraries(fractalwriter png m fractal)
 
 install(TARGETS fractalwriter RUNTIME DESTINATION ${BIN_DIR})
