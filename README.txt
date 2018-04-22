@@ -1,7 +1,11 @@
 *******************************************************************************
 
-	Author: 	Giuliano Sovernigo
-	Email: 		juliansovernigo@gmail.com
+	Authors: 	
+        Giuliano Sovernigo
+        Hugo Klepsch
+	Email: 		
+        juliansovernigo@gmail.com
+        hugo.klepsch@gmail.com
 
 	This program is a fractal generator!  It uses libpng to write a fractal
 	pattern to a png file.  You can specify colour, type, complex roots, and
@@ -12,7 +16,7 @@
 
 Included in the folder should be the following files:
 	- fractals.c
-	- Makefile
+	- CMakeLists.txt
 	- README.txt
 
 The program will output the file to the file name provided, using the -o flag.
@@ -21,17 +25,16 @@ The program will output the file to the file name provided, using the -o flag.
  Compiling
 ***********
 
-1. type make.
-2. obsever the new file that has been created.
+1. Make build directory and open terminal there:
+    mkdir build && cd build
+2. Generate makefile:
+    cmake ..
+3. Build the program:
+    make
 
 ***********
  Execution
 ***********
-
-The minimum flag that needs to be given to invoke the program is the `-f` flag.
-This flag specifies which file is to be used as the png template and the output
-file.  If the program does not have this flag, it will complain and fail to do
-anything really.
 
 FLAGS:
 	-r [0..255]			This flag specifies the red component.  Default 255.

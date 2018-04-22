@@ -1,0 +1,4 @@
+build/
+fractalwriter
+*.swp
+*.o
