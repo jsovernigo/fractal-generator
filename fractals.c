@@ -25,6 +25,7 @@
 // library specific includes.
 #include <png.h>
 #include <math.h>
+#include <pthread.h>
 
 #include "fractals.h"
 
@@ -162,72 +163,120 @@ int write_png_file(char* fname, int width, int height, png_bytep* row_pointers)
 	return 0;
 }
 
-void construct_mandelbrot(png_bytep* row_pointers, int width, int height, uint8_t r, uint8_t g, uint8_t b, int intensity)
+
+void* mandelbrot_thread_handler(void* args) 
+{
+	int iteration;
+	double x;
+	double y;
+	double c_re;
+	double c_im;
+
+	struct thread_context* t;
+	t = (struct thread_context*) args;
+
+	int width = t->width;
+	int height = t->height;
+	int i = t->i;
+	int j = t->j;
+	int r = t->r;
+	int g = t->g;
+	int b = t->b;
+	int intensity = t->intensity;
+	png_byte* ptr = t->ptr;
+
+	c_re = (j - width/2.0) * 4.0/width;
+	c_im = (i - height/2.0) * 4.0/width;
+
+	x = 0;
+	y = 0;
+
+	iteration = 0;
+
+	while(x * x + y * y <= 4 && iteration < MAX) 
+	{
+		double x_new;
+		x_new = x * x - y * y + c_re;
+		y = 2 * x * y + c_im;
+		x = x_new;
+
+		iteration++;
+	}
+
+	// NOT PART OF THE SET
+	if (iteration < MAX) 
+	{
+		double percent;
+		struct colour from;
+		struct colour to;
+
+		struct colour faded;
+
+		to = make_colour(0,0,0,255);
+		from = make_colour(r, g, b, 255);
+
+		percent = (((double) MAX - (double) iteration )/ (double)MAX);
+
+		faded = fade(from, to, MUTATE(percent));
+
+		SET_PIXEL(ptr, faded);
+	} 
+	else 
+	{
+		struct colour c;
+		c = make_colour(0, 0, 0, 255);
+		SET_PIXEL(ptr, c);
+	}
+
+	return NULL;
+}
+
+void construct_mandelbrot(png_bytep* row_pointers, int width, int height, uint8_t r, uint8_t g, uint8_t b, int intensity) 
 {
 	int i;
 	int j;
+	int t;
 
-	for (i = 0; i < height; i++)
+	pthread_t* threads;
+
+	threads = malloc(sizeof(pthread_t) * (width * height));
+	t = 0;
+
+	for (i = 0; i < height; i++) 
 	{
 		png_byte* row;
 		row = row_pointers[i];
 
-		for (j = 0; j < width; j++)
+		for (j = 0; j < width; j++) 
 		{
-			int iteration;
-			double x;
-			double y;
-			double c_re;
-			double c_im;
-
 			png_byte* ptr;
-			ptr = &(row[j*4]);
+			pthread_t n_thread;
+			struct thread_context* tc;
 
-			c_re = (j - width/2.0) * 4.0/width;
-			c_im = (i - height/2.0) * 4.0/width;
+			ptr = &row[j * 4]; 
 
-			x = 0;
-			y = 0;
+			tc = malloc(sizeof(struct thread_context));
 
-			iteration = 0;
+			tc->width = width;
+			tc->height = height;
+			tc->i = i;
+			tc->j = j;
+			tc->r = r;
+			tc->g = g;
+			tc->b = b;
+			tc->intensity = intensity;
+			tc->ptr = ptr;
 
-			while(x * x + y * y <= 4 && iteration < MAX)
-			{
-				double x_new;
-				x_new = x * x - y * y + c_re;
-				y = 2 * x * y + c_im;
-				x = x_new;
-
-				iteration++;
-			}
-
-			// NOT PART OF THE SET
-			if (iteration < MAX)
-			{
-				double percent;
-				struct colour from;
-				struct colour to;
-
-				struct colour faded;
-
-				to = make_colour(0,0,0,255);
-				from = make_colour(r, g, b, 255);
-
-				percent = (((double) MAX - (double) iteration )/ (double)MAX);
-
-				faded = fade(from, to, MUTATE(percent));
-
-				SET_PIXEL(ptr, faded);
-			}
-			else
-			{
-				struct colour c;
-				c = make_colour(0, 0, 0, 255);
-				SET_PIXEL(ptr, c);
-			}
+			pthread_create(&n_thread, NULL, &mandelbrot_thread_handler, (void*) tc);
+			threads[t] = n_thread;
+			t++;
 		}
 
 		write_progress(height, i);
+	}
+	for (i = 0; i < t; i++)
+	{
+		pthread_join(threads[i], NULL);
 	}
 
 	return;

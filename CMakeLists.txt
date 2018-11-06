@@ -24,6 +24,6 @@ endif()
 add_library(fractal STATIC fractals.c)
 
 add_executable(fractalwriter main.c)
-target_link_libraries(fractalwriter png m fractal)
+target_link_libraries(fractalwriter png m fractal pthread)
 
 install(TARGETS fractalwriter RUNTIME DESTINATION ${BIN_DIR})

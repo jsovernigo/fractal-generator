@@ -30,6 +30,7 @@
 #include <png.h>
 #include <math.h>
 
+
 // This is the *precision* of the fractal... decrease to speed up, but decrease your intensity!
 #define MAX 1000
 
@@ -55,6 +56,19 @@ struct colour
 	uint8_t b;
 	uint8_t a;
 };
+
+struct thread_context {
+	int width;
+	int height;
+	int i;
+	int j;
+	int r;
+	int g;
+	int b;
+	int intensity;
+	png_byte* ptr;
+};
+
 
 /**
  *	make_colour
@@ -113,6 +127,11 @@ png_bytep* get_rowpointers(int width, int height);
  *
  */
 int write_png_file(char* fname, int width, int height, png_bytep* row_pointers);
+
+/**
+ *	TODO
+ */
+void* mandelbrot_thread_handler(void* args);
 
 /**
  *	construct_mandelbrot

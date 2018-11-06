@@ -2,6 +2,7 @@
 
 #include "fractals.h"
 
+
 int intensity = 10;
 
 /**
